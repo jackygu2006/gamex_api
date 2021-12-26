@@ -9,10 +9,13 @@ import cors from 'cors';
 import mysql from 'mysql';
 import date from 'date-and-time';
 import dotenv from 'dotenv';
-import { apiBaseUrl, isHttps, httpPort, httpsPort } from './config.js';
+import { apiBaseUrl } from './config.js';
 
 dotenv.config()
 const TOTAL_BARS = 50;
+const isHttps = process.env.isHttps * 1=== 1;
+const httpsPort = process.env.httpsPort;
+const httpPort = process.env.httpPort;
 
 let credentials = null;
 if(isHttps) {
@@ -48,7 +51,8 @@ function setCors(app) {
     if (whitelist.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
-      callback(new Error('Not allowed by CORS'))
+      console.log('Not allowed by CORS');
+      // callback(new Error('Not allowed by CORS'))
     }
   };
   console.log('cors origin', origin);
