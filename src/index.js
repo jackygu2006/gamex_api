@@ -13,7 +13,7 @@ import { apiBaseUrl } from './config.js';
 
 dotenv.config()
 const TOTAL_BARS = 50;
-const isHttps = process.env.isHttps * 1=== 1;
+const isHttps = process.env.isHttps * 1 === 1;
 const httpsPort = process.env.httpsPort;
 const httpPort = process.env.httpPort;
 
@@ -46,9 +46,12 @@ function setCors(app) {
     'http://localhost:3000', 
     'http://app.gamex.plus',
     'https://app.gamex.plus',
+    'https://www.chatpuppy.com',
+    'https://chatpuppy.com'
   ];
   const origin = function (origin, callback) {
-    if (whitelist.indexOf(origin) !== -1) {
+    if(origin === undefined) callback(null, true); // for postman testing ######
+    else if (whitelist.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
       console.log('Not allowed by CORS');
@@ -370,6 +373,113 @@ app.post(apiBaseUrl + '/getUserHistory', function(req, res) {
   } catch(err) {
     res.send({success: false, message: error.message});
   }
+})
+
+/**
+ * Fetch marketplace onsale list
+ */
+app.post(apiBaseUrl + '/getOnsaleOrders', function (req, res) {
+  const nftAddress = req.body.nftAddress;
+  const l = req.body.limit !== undefined ? req.body.limit : '';
+  const o = req.body.offset != undefined ? req.body.offset : '';
+  const order = req.body.order !== undefined ? req.body.order : ''; 
+  // order can only be: 'startDate', 'blockNumber', 'auctionId', 'tokenId', '--amount', '--sellerAddress'
+  const desc = req.body.desc !== undefined ? req.body.desc === 1 ? "desc" : '' : 'desc'; // order by desc? 1 or 0, default is 1
+
+  if(nftAddress === undefined || l === '' || o === '') res.send({success: false, message: 'no nftAddress and limit'});
+  const limit = l !== '' && o !== '' ? ` limit ${l} offset ${o}` : '';
+  const orderby = order !== '' ? `${order} ${desc}` : `createdAt ${desc}`; 
+  const sql = `SELECT o.*, n.* FROM orders as o, nfts as n where o.nftAddress = '${nftAddress}' and isnull(o.buyerTimestamp) and o.cancelSale = 0 and o.tokenId = n.tokenId and o.nftAddress = n.nftAddress order by o.${orderby} ${limit}`;
+  // console.log(sql);
+  try {
+    connection.query(sql, function(error, data, fields) {
+      if(error) res.send({success: false, message: error.message});
+      else {
+        if(data.length == 0) res.send({success: false, message: 'no data'})
+        else {
+          let array = [];
+          for(let i = 0; i < data.length; i++) {
+            array.push({
+              contractAddress: data[i].contractAddress,
+              sellerAddress: data[i].sellerAddress,
+              nftAddress: data[i].nftAddress,
+              tokenId: data[i].tokenId,
+              tokenURI: data[i].tokenURI,
+              dna: data[i].dna,
+              artifacts: data[i].artifacts,
+              owner: data[i].owner,
+              time: data[i].startDate,
+              price: data[i].startingPrice,
+              quantity: data[i].count,
+              amount: data[i].amount,
+              paymentToken: data[i].paymentToken,
+              nftType: data[i].nftType,
+              transactionHash: data[i].transactionHash,
+              auctionId: data[i].auctionId,
+              
+            }) 
+          }
+          res.send({
+            success: true,
+            nftAddress: data[0].nftAddress,
+            data: array,
+          })
+        }
+      }
+    })  
+  } catch (err) {
+    res.send({success: false, message: err.message});
+  }
+})
+
+/**
+ * Get user's nfts
+ */
+app.post(apiBaseUrl + "/getUserNFTs", function(req, res) {
+  const nftAddress = req.body.nftAddress;
+  const address = req.body.address;
+  const l = req.body.limit !== undefined ? req.body.limit : '';
+  const o = req.body.offset != undefined ? req.body.offset : '';
+  const order = req.body.order !== undefined ? req.body.order : ''; 
+  // order can only be: tokenId, artifacts
+  const desc = req.body.desc !== undefined ? req.body.desc === 1 ? "desc" : '' : 'desc'; // order by desc? 1 or 0, default is 1
+
+  if(nftAddress === undefined || address === undefined || l === '' || o === '') {
+    res.send({success: false, message: 'No nftaddress and limit'})
+  }
+  const limit = l !== '' && o !== '' ? ` limit ${l} offset ${o}` : '';
+  const orderby = order !== '' ? `${order} ${desc}` : `createdAt ${desc}`; 
+  const sql = `SELECT * FROM nfts where nftAddress = '${nftAddress}' and owner = '${address}' order by ${orderby} ${limit}`;
+  console.log(sql);
+  try {
+    connection.query(sql, function(error, data, fields) {
+      if(error) res.send({success: false, message: error.message});
+      else {
+        if(data.length == 0) res.send({success: false, message: 'no data'})
+        else {
+          let array = [];
+          for(let i = 0; i < data.length; i++) {
+            array.push({
+              nftAddress: data[i].nftAddress,
+              tokenId: data[i].tokenId,
+              tokenURI: data[i].tokenURI,
+              dna: data[i].dna,
+              artifacts: data[i].artifacts,
+              owner: data[i].owner,              
+            })
+          }
+          res.send({
+            success: true,
+            nftAddress: data[0].nftAddress,
+            data: array,
+          })
+        }
+      }
+    })  
+  } catch (err) {
+    res.send({success: false, message: err.message});
+  }
+
 })
 
 /**
