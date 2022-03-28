@@ -441,7 +441,7 @@ app.post(apiBaseUrl + "/getUserNFTs", function(req, res) {
   const l = req.body.limit !== undefined ? req.body.limit : '';
   const o = req.body.offset != undefined ? req.body.offset : '';
   const order = req.body.order !== undefined ? req.body.order : ''; 
-  // order can only be: tokenId, artifacts
+  // order can only be: tokenId
   const desc = req.body.desc !== undefined ? req.body.desc === 1 ? "desc" : '' : 'desc'; // order by desc? 1 or 0, default is 1
 
   if(nftAddress === undefined || address === undefined || l === '' || o === '') {
@@ -449,7 +449,11 @@ app.post(apiBaseUrl + "/getUserNFTs", function(req, res) {
   }
   const limit = l !== '' && o !== '' ? ` limit ${l} offset ${o}` : '';
   const orderby = order !== '' ? `${order} ${desc}` : `createdAt ${desc}`; 
-  const sql = `SELECT * FROM nfts where nftAddress = '${nftAddress}' and owner = '${address}' order by ${orderby} ${limit}`;
+  const sql = `SELECT n.* FROM nfts as n where nftAddress = '${nftAddress}' and owner = '${address}' and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp)) order by --n${orderby} ${limit}`;
+	// SELECT n.* FROM nfts as n 
+	// where n.nftAddress = '0xA28D90320005C8c043Ee79ae59e82fDd5f983f30' and n.owner = '0xf0ab3fd4bf892bcb9b40b9c6b5a05e02f3afe833' 
+	// and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp)) 
+	// order by --n.tokenId desc  limit 15 offset 0
   console.log(sql);
   try {
     connection.query(sql, function(error, data, fields) {
