@@ -376,6 +376,50 @@ app.post(apiBaseUrl + '/getUserHistory', function(req, res) {
 })
 
 /**
+ * Get count of onsale orders
+ */
+app.post(apiBaseUrl + '/onsaleCount', function (req, res) {
+	const nftAddress = req.body.nftAddress;
+	if(nftAddress === undefined) res.send({success: false, message: 'no nftAddress'});
+	const sql = `SELECT count(*) as num from orders where nftAddress = '${nftAddress}' and isnull(buyerTimestamp) and cancelSale = 0`;
+	console.log(sql);
+	try {
+		connection.query(sql, function(error, data, fields) {
+			if(error) res.send({success: false, message: error.message});
+			else {
+				if(data.length === 0) res.send({success: false, message: 'no data'});
+				else res.send({success: true, nftAddress: nftAddress, data: {count: data[0].num}});
+			}
+		})
+	} catch (err) {
+		res.send({success: false, message: err.message})
+	}
+})
+
+/**
+ * Get count of use's nft
+ */
+app.post(apiBaseUrl + '/userNFTCount', function (req, res) {
+	const nftAddress = req.body.nftAddress;
+  const address = req.body.address;
+
+	if(nftAddress === undefined || address === undefined) res.send({success: false, message: 'No nftaddress and limit'})
+  const sql = `SELECT count(*) as num FROM nfts as n where nftAddress = '${nftAddress}' and owner = '${address}' and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp))`;
+	console.log(sql);
+	try {
+		connection.query(sql, function(error, data, fields) {
+			if(error) res.send({success: false, message: error.message});
+			else {
+				if(data.length === 0) res.send({success: false, message: 'no data'});
+				else res.send({success: true, nftAddress: nftAddress, data: {count: data[0].num}});
+			}
+		})
+	} catch (err) {
+		res.send({success: false, message: err.message})
+	}
+})
+
+/**
  * Fetch marketplace onsale list
  */
 app.post(apiBaseUrl + '/getOnsaleOrders', function (req, res) {
@@ -450,10 +494,6 @@ app.post(apiBaseUrl + "/getUserNFTs", function(req, res) {
   const limit = l !== '' && o !== '' ? ` limit ${l} offset ${o}` : '';
   const orderby = order !== '' ? `${order} ${desc}` : `createdAt ${desc}`; 
   const sql = `SELECT n.* FROM nfts as n where nftAddress = '${nftAddress}' and owner = '${address}' and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp)) order by --n.${orderby} ${limit}`;
-	// SELECT n.* FROM nfts as n 
-	// where n.nftAddress = '0xA28D90320005C8c043Ee79ae59e82fDd5f983f30' and n.owner = '0xf0ab3fd4bf892bcb9b40b9c6b5a05e02f3afe833' 
-	// and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp)) 
-	// order by --n.tokenId desc  limit 15 offset 0
   console.log(sql);
   try {
     connection.query(sql, function(error, data, fields) {
