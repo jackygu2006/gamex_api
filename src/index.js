@@ -390,7 +390,7 @@ app.post(apiBaseUrl + '/getOnsaleOrders', function (req, res) {
   const limit = l !== '' && o !== '' ? ` limit ${l} offset ${o}` : '';
   const orderby = order !== '' ? `${order} ${desc}` : `createdAt ${desc}`; 
   const sql = `SELECT o.*, n.* FROM orders as o, nfts as n where o.nftAddress = '${nftAddress}' and isnull(o.buyerTimestamp) and o.cancelSale = 0 and o.tokenId = n.tokenId and o.nftAddress = n.nftAddress order by o.${orderby} ${limit}`;
-  // console.log(sql);
+  console.log(sql);
   try {
     connection.query(sql, function(error, data, fields) {
       if(error) res.send({success: false, message: error.message});
