@@ -461,15 +461,16 @@ app.post(apiBaseUrl + '/getOnsaleOrders', function (req, res) {
   const l = req.body.limit !== undefined ? req.body.limit : '';
   const o = req.body.offset != undefined ? req.body.offset : '';
   const order = req.body.order !== undefined ? req.body.order : ''; 
-  // order can only be: 'startDate', 'blockNumber', 'auctionId', 'tokenId', '--amount', '--sellerAddress'
+  // order can only be: '--o.startDate', '--o.blockNumber', '--o.auctionId', '--o.tokenId', '--o.amount', '--o.sellerAddress', 
+	// --n.level, --n.exp
   const desc = req.body.desc !== undefined ? req.body.desc === 1 ? "desc" : '' : 'desc'; // order by desc? 1 or 0, default is 1
 
   if(nftAddress === undefined || address === undefined || l === '' || o === '') 
 		res.send({success: false, message: 'Params is error!'});
   const limit = l !== '' && o !== '' ? ` limit ${l} offset ${o}` : '';
   const orderby = order !== '' ? `${order} ${desc}` : `createdAt ${desc}`; 
-  const sql1 = `SELECT o.*, n.* FROM orders as o, nfts as n where o.sellerAddress = '${address}' and o.nftAddress = '${nftAddress}' and isnull(o.buyerTimestamp) and o.cancelSale = 0 and o.tokenId = n.tokenId and o.nftAddress = n.nftAddress order by --o.${orderby} ${limit}`;
-  const sql2 = `SELECT o.*, n.* FROM orders as o, nfts as n where o.sellerAddress <> '${address}' and o.nftAddress = '${nftAddress}' and isnull(o.buyerTimestamp) and o.cancelSale = 0 and o.tokenId = n.tokenId and o.nftAddress = n.nftAddress order by --o.${orderby} ${limit}`;
+  const sql1 = `SELECT o.*, n.* FROM orders as o, nfts as n where o.sellerAddress = '${address}' and o.nftAddress = '${nftAddress}' and isnull(o.buyerTimestamp) and o.cancelSale = 0 and o.tokenId = n.tokenId and o.nftAddress = n.nftAddress order by ${orderby} ${limit}`;
+  const sql2 = `SELECT o.*, n.* FROM orders as o, nfts as n where o.sellerAddress <> '${address}' and o.nftAddress = '${nftAddress}' and isnull(o.buyerTimestamp) and o.cancelSale = 0 and o.tokenId = n.tokenId and o.nftAddress = n.nftAddress order by ${orderby} ${limit}`;
   console.log(sql1);
   console.log(sql2);
   try {
@@ -500,6 +501,8 @@ app.post(apiBaseUrl + '/getOnsaleOrders', function (req, res) {
 								nftType: data[i].nftType,
 								transactionHash: data[i].transactionHash,
 								auctionId: data[i].auctionId,
+								exp: data[i].exp,
+								level: data[i].level,
 							}) 
 						}
 						res.send({
