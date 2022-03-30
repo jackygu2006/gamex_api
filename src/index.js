@@ -393,7 +393,7 @@ app.post(apiBaseUrl + '/onsaleCount', function (req, res) {
 					let onsaleCount = 0;
 					let myListedCount = 0;
 					for(let i = 0; i < data.length; i++) {
-						if(data[i].sellerAddress === address) myListedCount++;
+						if(data[i].sellerAddress.toLowerCase() === address.toLowerCase()) myListedCount++;
 						else onsaleCount++;
 					}
 					res.send({
