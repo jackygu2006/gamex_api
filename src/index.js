@@ -380,15 +380,32 @@ app.post(apiBaseUrl + '/getUserHistory', function(req, res) {
  */
 app.post(apiBaseUrl + '/onsaleCount', function (req, res) {
 	const nftAddress = req.body.nftAddress;
+	const address = req.body.address;
 	if(nftAddress === undefined) res.send({success: false, message: 'no nftAddress'});
-	const sql = `SELECT count(*) as num from orders where nftAddress = '${nftAddress}' and isnull(buyerTimestamp) and cancelSale = 0`;
+	const sql = `SELECT * from orders where nftAddress = '${nftAddress}' and isnull(buyerTimestamp) and cancelSale = 0`;
 	console.log(sql);
 	try {
 		connection.query(sql, function(error, data, fields) {
 			if(error) res.send({success: false, message: error.message});
 			else {
 				if(data.length === 0) res.send({success: false, message: 'no data'});
-				else res.send({success: true, nftAddress: nftAddress, data: {count: data[0].num}});
+				else {
+					let onsaleCount = 0;
+					let myListedCount = 0;
+					for(let i = 0; i < data.length; i++) {
+						if(data[i].sellerAddress === address) myListedCount++;
+						else onsaleCount++;
+					}
+					res.send({
+						success: true, 
+						nftAddress: nftAddress, 
+						data: {
+							total: data.length,
+							onsaleCount,
+							myListedCount
+						}
+					});
+				}
 			}
 		})
 	} catch (err) {
@@ -404,14 +421,30 @@ app.post(apiBaseUrl + '/userNFTCount', function (req, res) {
   const address = req.body.address;
 
 	if(nftAddress === undefined || address === undefined) res.send({success: false, message: 'No nftaddress and limit'})
-  const sql = `SELECT count(*) as num FROM nfts as n where nftAddress = '${nftAddress}' and owner = '${address}' and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp))`;
+  const sql = `SELECT * FROM nfts as n where nftAddress = '${nftAddress}' and owner = '${address}' and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp))`;
 	console.log(sql);
 	try {
 		connection.query(sql, function(error, data, fields) {
 			if(error) res.send({success: false, message: error.message});
 			else {
 				if(data.length === 0) res.send({success: false, message: 'no data'});
-				else res.send({success: true, nftAddress: nftAddress, data: {count: data[0].num}});
+				else {
+					let boxedCount = 0;
+					let unboxedCount = 0;
+					for(var i = 0; i < data.length; i++) {
+						if(data[i].dna !== null) unboxedCount++;
+						else boxedCount++;
+					}
+					res.send({
+						success: true, 
+						nftAddress: nftAddress, 
+						data: {
+							count: data.length,
+							boxedCount,
+							unboxedCount
+						}
+					});
+				}
 			}
 		})
 	} catch (err) {
