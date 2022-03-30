@@ -528,7 +528,7 @@ app.post(apiBaseUrl + "/getUserNFTs", function(req, res) {
   const l = req.body.limit !== undefined ? req.body.limit : '';
   const o = req.body.offset != undefined ? req.body.offset : '';
   const order = req.body.order !== undefined ? req.body.order : ''; 
-  // order can only be: tokenId
+  // order can only be: --n.tokenId, --n.level, --n.exp
   const desc = req.body.desc !== undefined ? req.body.desc === 1 ? "desc" : '' : 'desc'; // order by desc? 1 or 0, default is 1
 
   if(nftAddress === undefined || address === undefined || l === '' || o === '') {
@@ -536,8 +536,8 @@ app.post(apiBaseUrl + "/getUserNFTs", function(req, res) {
   }
   const limit = l !== '' && o !== '' ? ` limit ${l} offset ${o}` : '';
   const orderby = order !== '' ? `${order} ${desc}` : `createdAt ${desc}`; 
-  const sql1 = `SELECT n.* FROM nfts as n where isnull(n.dna) and nftAddress = '${nftAddress}' and owner = '${address}' and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp)) order by --n.${orderby} ${limit}`;
-  const sql2 = `SELECT n.* FROM nfts as n where not isnull(n.dna) and nftAddress = '${nftAddress}' and owner = '${address}' and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp)) order by --n.${orderby} ${limit}`;
+  const sql1 = `SELECT n.* FROM nfts as n where isnull(n.dna) and nftAddress = '${nftAddress}' and owner = '${address}' and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp)) order by ${orderby} ${limit}`;
+  const sql2 = `SELECT n.* FROM nfts as n where not isnull(n.dna) and nftAddress = '${nftAddress}' and owner = '${address}' and n.tokenId not in (select tokenId from orders where orders.nftAddress = n.nftAddress and orders.cancelSale = 0 and isnull(orders.buyerTimestamp)) order by ${orderby} ${limit}`;
   console.log(sql1);
 	console.log(sql2);
   try {
@@ -557,7 +557,9 @@ app.post(apiBaseUrl + "/getUserNFTs", function(req, res) {
 								tokenURI: data[i].tokenURI,
 								dna: data[i].dna,
 								artifacts: data[i].artifacts,
-								owner: data[i].owner,              
+								owner: data[i].owner,   
+								level: data[i].level,
+								exp: data[i].exp,           
 							})
 						}
 						res.send({
